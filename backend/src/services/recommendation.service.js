@@ -1,4 +1,3 @@
-import axios from "axios";
 import {
   retrieveAssessments,
 } from "./retriever.service.js";
@@ -7,73 +6,47 @@ import {
   expandQuery,
 } from "../utils/queryExpansion.js";
 
-import {
-  scoreResults,
-  filterWeakResults,
-  deduplicateResults,
-  sortResultsByConfidence,
-} from "../utils/recommendationHelpers.js";
-
-
-
-const OLLAMA_URL =
-  "http://localhost:11434";
-
-
-  export const generateCompletion =
-  async (prompt) => {
-    const response =
-      await axios.post(
-        `${OLLAMA_URL}/api/generate`,
-        {
-          model: "llama3",
-
-          prompt,
-
-          stream: false,
-        }
-      );
-
-    return response.data.response;
-  };
-
-  export const generateRecommendations =
+export const generateRecommendations =
   async (
     query
   ) => {
+
+    // Expand query
     const expandedQuery =
       expandQuery(query);
 
+    // Retrieve results
     let results =
       await retrieveAssessments(
         expandedQuery
       );
 
-    results =
-      scoreResults(
-        results,
-        expandedQuery
-      );
+    // Remove duplicates
+    const seen =
+      new Set();
 
     results =
-      filterWeakResults(
-        results
+      results.filter(
+        (result) => {
+          const name =
+            result.metadata
+              ?.name;
+
+          if (
+            seen.has(name)
+          ) {
+            return false;
+          }
+
+          seen.add(name);
+
+          return true;
+        }
       );
 
-    results =
-      deduplicateResults(
-        results
-      );
-
-    results =
-      sortResultsByConfidence(
-        results
-      );
-
+    // Return top 5
     return results.slice(
       0,
       5
     );
   };
-
-  

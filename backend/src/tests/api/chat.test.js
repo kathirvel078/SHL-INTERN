@@ -2,11 +2,36 @@ import {
   describe,
   test,
   expect,
+  jest,
 } from "@jest/globals";
 
 import request from "supertest";
 
-import app from "../../app.js";
+// MOCK FIRST
+jest.unstable_mockModule(
+  "../../services/ollama.service.js",
+  () => ({
+    generateCompletion:
+      async () => {
+        return JSON.stringify({
+          reply:
+            "Mocked AI response",
+
+          recommendations:
+            [],
+
+          end_of_conversation:
+            true,
+        });
+      },
+  })
+);
+
+// IMPORT APP AFTER MOCK
+const { default: app } =
+  await import(
+    "../../app.js"
+  );
 
 describe(
   "POST /chat",
@@ -14,6 +39,7 @@ describe(
     test(
       "should return recommendations",
       async () => {
+
         const response =
           await request(app)
             .post("/chat")
@@ -42,7 +68,8 @@ describe(
               .recommendations
           )
         ).toBe(true);
-      }
+      },
+      15000
     );
   }
 );
